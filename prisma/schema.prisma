@@ -133,6 +133,8 @@ model SelectedAnswer {
   answer        Answer          @relation(fields: [answerId], references: [id], onDelete: Cascade)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+
+  @@index([quizSessionId, questionId])
 }
 
 //analytics

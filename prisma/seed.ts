@@ -1,8 +1,8 @@
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { PrismaClient } = require('@prisma/client')
-// import { hash } from 'bcrypt-ts'
+import { PrismaClient } from '@prisma/client';
+import { ObjectId } from 'bson';
+// import { hash } from 'bcrypt-ts';
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 async function main() {
   // Create a quiz
@@ -43,7 +43,7 @@ async function main() {
         ],
       },
     },
-  })
+  });
 
   // Create an anonymous session for the user entering the quiz
   const session = await prisma.session.create({
@@ -54,11 +54,12 @@ async function main() {
           email: null,
           password: null,
           name: 'Anonymous',
+          id: new ObjectId().toHexString(), // Gerar um ObjectID válido usando bson
         },
       },
       expires: new Date(Date.now() + 1000 * 60 * 60), // 1 hour expiry
     },
-  })
+  });
 
   // Create a quiz session for the anonymous user
   const quizSession = await prisma.quizSession.create({
@@ -69,19 +70,19 @@ async function main() {
       progress: 0,
       isCompleted: false,
     },
-  })
+  });
 
-  console.log('Seed data created:')
-  console.log('Quiz:', quiz)
-  console.log('Session:', session)
-  console.log('QuizSession:', quizSession)
+  console.log('Seed data created:');
+  console.log('Quiz:', quiz);
+  console.log('Session:', session);
+  console.log('QuizSession:', quizSession);
 }
 
 main()
   .catch((e) => {
-    console.error(e)
-    process.exit(1)
+    console.error(e);
+    process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect()
-  })
+    await prisma.$disconnect();
+  });

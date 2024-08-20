@@ -100,7 +100,6 @@ export async function GET(req: NextRequest) {
         },
       });
     }
-
     // Serializar o userId em um cookie
     const cookie = serialize('userId', user.id, {
       path: '/',
@@ -111,7 +110,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Usar um ObjectID válido para o quizId
-    const quizId = '66bea7a702831c5a8ae3a1e9'; // ID fixo para o quiz
+    const quizId = '66c4b9e94a0ae7caa7e47126'; // ID fixo para o quiz
 
     // Verificar se o quiz existe
     const quiz = await prisma.quiz.findUnique({

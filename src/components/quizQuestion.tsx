@@ -1,12 +1,60 @@
+import React, { useState, useEffect } from 'react';
 import { Question } from '@/types/types';
-import React from 'react';
+import { QuizSession } from '@prisma/client';
+import { updateQuizProgress, getSavedAnswer } from '@/server/actions';
 
 interface Props {
   question: Question;
   onAnswerSelected: (nextId: string | null) => void;
+  quizSession: QuizSession;
+  selectedAnswer: string | null;
 }
 
-const QuizQuestion: React.FC<Props> = ({ question, onAnswerSelected }) => {
+const QuizQuestion: React.FC<Props> = ({ question, onAnswerSelected, quizSession, selectedAnswer }) => {
+  const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(selectedAnswer);
+
+  useEffect(() => {
+    if (!quizSession || !question) return;
+
+    const fetchSavedAnswer = async () => {
+      try {
+        const savedAnswer = await getSavedAnswer({
+          quizSessionId: quizSession.id,
+          questionId: question.id,
+        });
+        if (savedAnswer) {
+          setSelectedAnswerId(savedAnswer.answerId);
+        }
+      } catch (error) {
+        console.error('Failed to fetch saved answer:', error);
+      }
+    };
+
+    fetchSavedAnswer();
+  }, [quizSession, question]);
+
+  const handleAnswerSelected = async (answerId: string) => {
+    setSelectedAnswerId(answerId);
+
+    const newProgress = quizSession.progress + 1;
+    const newQuestionIndex = quizSession.currentQuestionIndex + 1;
+
+    try {
+      await updateQuizProgress({
+        quizSessionId: quizSession.id,
+        currentQuestionIndex: newQuestionIndex,
+        progress: newProgress,
+        selectedAnswer: {
+          questionId: question.id,
+          answerId: answerId,
+        },
+      });
+      onAnswerSelected(newQuestionIndex.toString()); // Atualiza o índice da questão
+    } catch (error) {
+      console.error('Failed to update quiz progress:', error);
+    }
+  };
+
   return (
     <div className="w-full max-w-lg">
       <div className="mb-6 text-center">
@@ -21,45 +69,22 @@ const QuizQuestion: React.FC<Props> = ({ question, onAnswerSelected }) => {
         {question.answers.map((answer) => (
           <label
             key={answer.id}
-            className="flex cursor-pointer items-center space-x-4 rounded-lg bg-gray-700 p-4"
+            className={`flex cursor-pointer items-center space-x-4 rounded-lg p-4 ${
+              selectedAnswerId === answer.id ? 'bg-green-700' : 'bg-gray-700'
+            }`}
           >
             <input
               type="radio"
               name={question.id}
               value={answer.id}
-              onChange={() => onAnswerSelected(answer.isCorrect ? null : answer.id)}
+              checked={selectedAnswerId === answer.id}
+              onChange={() => handleAnswerSelected(answer.id)}
               className="h-6 w-6 border-gray-600 text-green-400 focus:ring-green-400"
             />
             <span className="text-gray-300">{answer.text}</span>
           </label>
         ))}
       </div>
-      {question.tooltipTitle && (
-        <div className="mt-6 rounded-lg bg-gray-800 p-4">
-          <div className="flex items-center">
-            <svg
-              className="mr-2 h-4 w-4 text-gray-400"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect
-                x="0"
-                y="0"
-                width="16"
-                height="16"
-                rx="4"
-                fill="currentColor"
-              />
-              <path
-                d="M6.751 9.758v-.433c0-.375.08-.702.24-.979.16-.277.453-.572.88-.885.41-.293.679-.531.808-.715.133-.183.199-.388.199-.615 0-.254-.094-.447-.281-.58-.188-.133-.45-.2-.785-.2-.586 0-1.254.192-2.004.575l-.639-1.283a5.583 5.583 0 0 1 2.772-.732c.804 0 1.443.193 1.916.58.476.386.714.902.714 1.546 0 .43-.097.801-.293 1.114-.195.312-.566.664-1.113 1.054-.375.278-.613.489-.715.633-.097.145-.146.334-.146.569v.351H6.75Zm-.187 2.004c0-.328.087-.576.263-.744.176-.168.432-.252.768-.252.324 0 .574.086.75.258.18.172.27.418.27.738 0 .309-.09.553-.27.732-.18.176-.43.264-.75.264-.328 0-.582-.086-.762-.258-.18-.175-.27-.421-.27-.738Z"
-                fill="#fff"
-              />
-            </svg>
-            <p className="text-sm text-gray-400">{question.tooltipTitle}</p>
-          </div>
-          <p className="mt-2 text-gray-300">{question.tooltipDescription}</p>
-        </div>
-      )}
     </div>
   );
 };
