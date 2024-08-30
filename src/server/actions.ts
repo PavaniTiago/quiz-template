@@ -88,3 +88,49 @@ export async function getSavedAnswer({
     throw new Error('Failed to fetch saved answer');
   }
 }
+
+export async function UpdateUser({
+  userId,
+  data,
+}: {
+  userId: string;
+  data: {
+    name?: string;
+    email?: string;
+  };
+}) {
+  try {
+    console.log('Updating user with ID:', userId, 'and data:', data);
+
+    // Verificar se os dados estão sendo passados corretamente
+    if (!userId || !data) {
+      throw new Error('User ID or data is missing');
+    }
+
+    // Verificar se o usuário existe
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!userExists) {
+      throw new Error('User not found');
+    }
+
+    console.log('User exists:', userExists);
+
+    // Atualiza os dados do usuário
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: data.name, // Manter o nome atual se não for fornecido
+        email: data.email ?? userExists.email, // Manter o email atual se não for fornecido
+      },
+    });
+
+    console.log('User updated successfully:', updatedUser);
+    return updatedUser;
+  } catch (error) {
+    console.error('Failed to update user:', error);
+    throw new Error('Failed to update user');
+  }
+}

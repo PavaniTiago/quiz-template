@@ -8,6 +8,7 @@ export interface Answer {
 export interface Question {
   id: string;
   title: string;
+  text: string;
   subtitle?: string;
   description?: string;
   tooltipTitle?: string;

@@ -6,16 +6,20 @@ import QuizQuestion from './quizQuestion';
 import ProgressBar from './progressBar';
 import { getCookies } from '@/lib/getCookies';
 import { updateQuizProgress } from '@/server/actions';
+import { User } from '@prisma/client';
+import { Icon } from '@iconify/react';
 
 const QuizPage = () => {
   const { data: session, status } = useSession();
   const [quiz, setQuiz] = useState<any>(null);
   const [quizSession, setQuizSession] = useState<any>(null);
+  const [user, setUser] = useState<User>();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [history, setHistory] = useState<number[]>([]);
   const [answeredQuestions, setAnsweredQuestions] = useState<Set<number>>(new Set());
-  const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string | null }>({});
+  const [selectedAnswers, setSelectedAnswers] = useState<{ [key: number]: string[] }>({});
+  const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchQuiz = async () => {
@@ -47,6 +51,7 @@ const QuizPage = () => {
           });
           const data = await response.json();
           setQuizSession(data.quizSession);
+          setUser(data.user);
           console.log('User ID registered in cookies:', data);
         } catch (error) {
           console.error('Error registering user ID in cookies:', error);
@@ -57,27 +62,75 @@ const QuizPage = () => {
     registerUser();
   }, []);
 
-  const handleAnswerSelected = async (answerId: string | null) => {
-    setSelectedAnswers((prev) => ({ ...prev, [currentQuestionIndex]: answerId }));
-    setAnsweredQuestions((prev) => new Set(prev).add(currentQuestionIndex));
+  useEffect(() => {
+    const currentSelected = Array.isArray(selectedAnswers[currentQuestionIndex])
+      ? selectedAnswers[currentQuestionIndex].join(',').split(',')
+      : [];
+    setSelected(currentSelected);
+  }, [selectedAnswers, currentQuestionIndex]);
 
-    if (quiz && currentQuestionIndex < quiz.questions.length - 1) {
-      setHistory((prev) => [...prev, currentQuestionIndex]);
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+  const handleAnswerSelected = async (answerIds: string[]) => {
+    const currentQuestion = quiz.questions[currentQuestionIndex];
+  
+    if (currentQuestion.type === 'MULTIPLE_CHOICE') {
+      setSelectedAnswers((prev) => ({
+        ...prev,
+        [currentQuestionIndex]: answerIds,
+      }));
+    } else {
+      setSelectedAnswers((prev) => ({
+        ...prev,
+        [currentQuestionIndex]: answerIds.slice(0, 1),
+      }));
     }
-
+  
+    setAnsweredQuestions((prev) => new Set(prev).add(currentQuestionIndex));
+  
+    let nextQuestionIndex = currentQuestionIndex + 1;
+  
+    // Lógica condicional para direcionar o usuário para a próxima pergunta específica
+    if (currentQuestion.id === '66c4b9e94a0ae7caa7e47127') {
+      if (answerIds.includes('66c4b9e94a0ae7caa7e47128')) {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === '66c8e5e2acff529714d7b05f');
+      } else {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === '66c4f372811f0556f802a5fd');
+      }
+    } else if (currentQuestion.id === '66c4f372811f0556f802a5f8') {
+      if (answerIds.includes('someAnswerId2')) {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === 'nextQuestionId3');
+      } else {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === 'nextQuestionId4');
+      }
+    } else if (currentQuestion.type === 'MULTIPLE_CHOICE' && currentQuestion.id === '66c79675c81181ebb80e5328') {
+      // Exemplo de lógica para múltipla escolha
+      if (answerIds.includes('66c79675c81181ebb80e5329') && answerIds.includes('66c79675c81181ebb80e532a')) {
+        console.log('Both answers selected');
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === '66c4b9e94a0ae7caa7e47127');
+      } else if (answerIds.includes('multipleChoiceAnswerId1')) {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === 'nextQuestionIdForMultipleChoice1');
+      } else if (answerIds.includes('multipleChoiceAnswerId2')) {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === 'nextQuestionIdForMultipleChoice2');
+      } else {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === 'defaultNextQuestionIdForMultipleChoice');
+      }
+    }
+  
+    if (quiz && nextQuestionIndex < quiz.questions.length) {
+      setHistory((prev) => [...prev, currentQuestionIndex]);
+      setCurrentQuestionIndex(nextQuestionIndex);
+    }
+  
     if (quizSession) {
       const newProgress = quizSession.progress + 1;
-      const newQuestionIndex = currentQuestionIndex + 1;
-
+  
       try {
         await updateQuizProgress({
           quizSessionId: quizSession.id,
-          currentQuestionIndex: newQuestionIndex,
+          currentQuestionIndex: nextQuestionIndex,
           progress: newProgress,
           selectedAnswer: {
-            questionId: quiz.questions[currentQuestionIndex].id,
-            answerId: answerId as string,
+            questionId: currentQuestion.id,
+            answerId: answerIds[0], // Considerando apenas o primeiro ID para o progresso
           },
         });
       } catch (error) {
@@ -101,6 +154,10 @@ const QuizPage = () => {
     }
   };
 
+  const handleUserUpdated = (data: { name: string }) => {
+    setUser(data as any);
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -121,7 +178,7 @@ const QuizPage = () => {
             totalQuestions={quiz?.questions.length ?? 0}
           />
         </div>
-        <div className="flex w-full items-center justify-between">
+        <div className="flex w-full items-center justify-around">
           <div className="flex items-center">
             {history.length > 0 && (
               <button
@@ -166,14 +223,16 @@ const QuizPage = () => {
               </button>
             )}
           </div>
+          {user?.name && <div className="flex items-center text-center mt-4 gap-3"><Icon icon="bx:user" className='w-5 h-5 text-neutral-500' />{user?.name}</div>}
         </div>
       </nav>
       <main className="flex grow flex-col items-center justify-center p-6">
         <QuizQuestion
           question={quiz.questions[currentQuestionIndex]}
           onAnswerSelected={handleAnswerSelected}
-          selectedAnswer={selectedAnswers[currentQuestionIndex]}
+          selectedAnswer={selected.join(',')}
           quizSession={quizSession}
+          onUserUpdated={handleUserUpdated}
         />
       </main>
       <footer className="w-full bg-gray-800 py-4 text-center text-sm text-gray-500">
