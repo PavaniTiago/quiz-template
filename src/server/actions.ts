@@ -3,6 +3,7 @@
 // src/server/actions.ts
 
 import { prisma } from '@/lib/prisma';
+import { hash } from 'bcrypt-ts';
 import { ObjectId } from 'mongodb';
 
 export async function updateQuizProgress({
@@ -97,6 +98,7 @@ export async function UpdateUser({
   data: {
     name?: string;
     email?: string;
+    password?: string;
   };
 }) {
   try {
@@ -124,6 +126,7 @@ export async function UpdateUser({
       data: {
         name: data.name, // Manter o nome atual se não for fornecido
         email: data.email ?? userExists.email, // Manter o email atual se não for fornecido
+        password: await hash(data.password ?? '', 10), // Manter o email atual se não for fornecido
       },
     });
 

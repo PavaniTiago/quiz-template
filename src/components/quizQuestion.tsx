@@ -18,7 +18,9 @@ const QuizQuestion: React.FC<Props> = ({ question, onAnswerSelected, quizSession
   const [selectedAnswerId, setSelectedAnswerId] = useState<string | null>(selectedAnswer);
   const [selectedAnswers, setSelectedAnswers] = useState<string[]>(selectedAnswer ? selectedAnswer.split(',') : []);
   const [name, setName] = useState('');
-
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  
   useEffect(() => {
     if (!quizSession || !question) return;
 
@@ -64,9 +66,9 @@ const QuizQuestion: React.FC<Props> = ({ question, onAnswerSelected, quizSession
     onAnswerSelected(uniqueAnswers);
   };
 
-  const handleUpdateUser = async (name: string, id: string) => {
+  const handleUpdateUser = async (name: string, id: string, email?: string, password?: string) => {
     try {
-      const data = { name }; // Estrutura correta do objeto
+      const data = { name, email, password }; // Estrutura correta do objeto
       await UpdateUser({ data, userId: id });
       onUserUpdated(data); // Passa os dados para o componente pai
       handleMultipleChoiceSubmit(); // Avança para a próxima pergunta
@@ -106,8 +108,28 @@ const QuizQuestion: React.FC<Props> = ({ question, onAnswerSelected, quizSession
               <div className="mb-6 text-center">
                 <Feedback1 />
               </div>
-            )
-            : (
+            ) : question.id === '66c8e5e2acff529714d7b060' ? (
+              <div className="mb-6 text-center space-y-6">
+                <Input
+                  icon={<Icon icon="bx:user" className='w-5 h-5 text-neutral-500' />}
+                  value={name}
+                  type='text'
+                  onChange={(e) => setName(e.target.value)}
+                />
+                <Input
+                  icon={<Icon icon="ic:outline-email" className='w-5 h-5 text-neutral-500' />}
+                  value={email}
+                  type='email'
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+                <Input
+                  icon={<Icon icon="mdi:password-outline" className='w-5 h-5 text-neutral-500' />}
+                  value={password}
+                  type='password'
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            ) : (
               <div className="mb-6 text-center">
                 <Input
                   icon={<Icon icon="bx:user" className='w-5 h-5 text-neutral-500' />}
@@ -149,7 +171,7 @@ const QuizQuestion: React.FC<Props> = ({ question, onAnswerSelected, quizSession
           )}
           {question.type === 'TEXT' && (
             <button
-            onClick={name !== '' ? () => { handleUpdateUser(name, quizSession.userId) } : handleMultipleChoiceSubmit}
+            onClick={name !== '' ? () => { handleUpdateUser(name, quizSession.userId, email, password) } : handleMultipleChoiceSubmit}
             className="mt-4 px-4 py-2 bg-green-500 text-white rounded-lg"
             >
               Avançar

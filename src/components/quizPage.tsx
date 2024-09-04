@@ -90,8 +90,8 @@ const QuizPage = () => {
   
     // Lógica condicional para direcionar o usuário para a próxima pergunta específica
     if (currentQuestion.id === '66c4b9e94a0ae7caa7e47127') {
-      if (answerIds.includes('66c4b9e94a0ae7caa7e47128')) {
-        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === '66c8e5e2acff529714d7b05f');
+      if (answerIds.includes('66c4b9e94a0ae7caa7e4712b')) {
+        nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === '66c8e5e2acff529714d7b060');
       } else {
         nextQuestionIndex = quiz.questions.findIndex((q: { id: string; }) => q.id === '66c4f372811f0556f802a5fd');
       }
